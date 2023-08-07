@@ -13,18 +13,23 @@ buttonLoadMore.style.display = 'none';
 buttonLoadMore.addEventListener('click', onLoadMoreClick);
 
 function onFormSearch(evt) {
-  // При повторному сабміті форми кнопка спочатку ховається, а після запиту знову відображається.
   buttonLoadMore.style.display = 'none';
   evt.preventDefault();
   newImageService.page = 1;
-  newImageService.text = input.value; // Оновити пошуковий запит
-  newImageService.getSearch().then(images => createGallery(images));
-  // Після першого запиту кнопка з'являється в інтерфейсі під галереєю.
-  if (images.length > 0) {
-    buttonLoadMore.style.display = 'block';
-  }
-}
+  newImageService.text = input.value;
 
+  newImageService
+    .getSearch()
+    .then(images => {
+      createGallery(images);
+    })
+    .catch(error => {
+      console.error(error);
+      Notiflix.Notify.failure(
+        'An error occurred while fetching images. Please try again later.'
+      );
+    });
+}
 // створюємо нову розмітку з зображеннями
 function createGallery(arr) {
   // Очищаємо вміст галереї перед рендерингом нових зображень
@@ -66,12 +71,8 @@ function createGallery(arr) {
 
 function onLoadMoreClick() {
   newImageService.page += 1; // Збільшуємо номер сторінки
+
   newImageService.getSearch().then(images => {
     createGallery(images);
-
-    if (images.length === 0) {
-      buttonLoadMore.style.display = 'none';
-      Notiflix.Notify.failure('Більше зображень для завантаження немає.');
-    }
   });
 }
