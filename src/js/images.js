@@ -21,7 +21,7 @@ export default class ImagesApiService {
 
     return axios
       .get(BASE_URL, { params })
-      .then(response => response.data.hits) // Отримуємо масив зображень з відповіді
+      .then(response => response.data) // Отримуємо масив зображень з відповіді
       .catch(error => {
         console.error(error);
         return [];

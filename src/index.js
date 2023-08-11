@@ -1,4 +1,6 @@
 import ImagesApiService from './js/images.js';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 import Notiflix from 'notiflix';
 const newImageService = new ImagesApiService();
 const form = document.querySelector('.search-form');
@@ -20,8 +22,15 @@ function onFormSearch(evt) {
 
   newImageService
     .getSearch()
-    .then(images => {
-      createGallery(images);
+    .then(data => {
+      console.log(data.hits.length);
+      if (data.totalHits > 40) {
+        buttonLoadMore.style.display = 'block';
+      } else {
+        buttonLoadMore.style.display = 'none';
+      }
+      Notiflix.Notify.info(`Hooray! We found ${data.totalHits} images.`);
+      createGallery(data.hits);
     })
     .catch(error => {
       console.error(error);
@@ -35,6 +44,10 @@ function createGallery(arr) {
   // Очищаємо вміст галереї перед рендерингом нових зображень
   gallery.innerHTML = '';
 
+  appendImages(arr);
+}
+
+function appendImages(arr) {
   if (!Array.isArray(arr) || arr.length === 0) {
     Notiflix.Notify.failure(
       'Sorry, there are no images matching your search query. Please try again.'
@@ -44,6 +57,7 @@ function createGallery(arr) {
 
   arr.forEach(item => {
     const photoCard = `
+    <a href="${item.largeImageURL}" class="photo-card-link">
       <div class="photo-card">
         <img src="${item.webformatURL}" alt="${item.tags}" loading="lazy" />
         <div class="info">
@@ -61,18 +75,11 @@ function createGallery(arr) {
           </p>
         </div>
       </div>
+    </a>
     `;
 
     gallery.insertAdjacentHTML('beforeend', photoCard);
   });
-}
-
-// створюємо функцію для перелистування сторінки
-
-function onLoadMoreClick() {
-  newImageService.page += 1; // Збільшуємо номер сторінки
-
-  newImageService.getSearch().then(images => {
-    createGallery(images);
-  });
+  const lightbox = new SimpleLightbox('.photo-card-link');
+  lightbox.refresh();
 }
