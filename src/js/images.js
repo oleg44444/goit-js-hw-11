@@ -8,7 +8,7 @@ export default class ImagesApiService {
     this.page = 1;
   }
 
-  getSearch() {
+  async getSearch() {
     const params = {
       key: '38612170-77e451be80bcbbe7a33b7fee0',
       q: this.searchText,
@@ -19,13 +19,13 @@ export default class ImagesApiService {
       per_page: 40,
     };
 
-    return axios
-      .get(BASE_URL, { params })
-      .then(response => response.data) // Отримуємо масив зображень з відповіді
-      .catch(error => {
-        console.error(error);
-        return [];
-      });
+    try {
+      const response = await axios.get(BASE_URL, { params });
+      return response.data; // Отримуємо масив зображень з відповіді
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
   }
 
   get text() {

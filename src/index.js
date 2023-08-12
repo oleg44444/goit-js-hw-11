@@ -1,21 +1,23 @@
+import throttle from 'lodash.throttle';
 import ImagesApiService from './js/images.js';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 import Notiflix from 'notiflix';
+
 const newImageService = new ImagesApiService();
 const form = document.querySelector('.search-form');
 const input = document.querySelector('.search-form input');
 const gallery = document.querySelector('.gallery');
+const scrollTopButton = document.querySelector('.scroll-top-btn');
+const loaderMore = document.querySelector('.loader');
+
 form.addEventListener('submit', onFormSearch);
-const buttonLoadMore = document.querySelector('.load-more');
 
 // В початковому стані кнопка повинна бути прихована.
-buttonLoadMore.style.display = 'none';
-
-buttonLoadMore.addEventListener('click', onLoadMoreClick);
+loaderMore.style.display = 'none';
 
 function onFormSearch(evt) {
-  buttonLoadMore.style.display = 'none';
+  loaderMore.style.display = 'none';
   evt.preventDefault();
   newImageService.page = 1;
   newImageService.text = input.value;
@@ -25,9 +27,9 @@ function onFormSearch(evt) {
     .then(data => {
       console.log(data.hits.length);
       if (data.totalHits > 40) {
-        buttonLoadMore.style.display = 'block';
+        loaderMore.style.display = 'flex';
       } else {
-        buttonLoadMore.style.display = 'none';
+        loaderMore.style.display = 'none';
       }
       Notiflix.Notify.info(`Hooray! We found ${data.totalHits} images.`);
       createGallery(data.hits);
@@ -39,6 +41,7 @@ function onFormSearch(evt) {
       );
     });
 }
+
 // створюємо нову розмітку з зображеннями
 function createGallery(arr) {
   // Очищаємо вміст галереї перед рендерингом нових зображень
@@ -47,11 +50,55 @@ function createGallery(arr) {
   appendImages(arr);
 }
 
+// створюємо бескінечний скролл
+window.addEventListener(
+  'scroll',
+  throttle(() => {
+    const documentRect = document.documentElement.getBoundingClientRect();
+
+    if (documentRect.bottom < document.documentElement.clientHeight + 150) {
+      console.log('DONE');
+      newImageService.page += 1; // Збільшуємо номер сторінки
+
+      newImageService.getSearch().then(data => {
+        appendImages(data.hits);
+        const { height: cardHeight } = document
+          .querySelector('.gallery')
+          .firstElementChild.getBoundingClientRect();
+        const galleryHeight = gallery.getBoundingClientRect().height;
+
+        const scrollAmount = cardHeight * 2;
+
+        if (scrollAmount < galleryHeight) {
+          window.scrollBy({
+            top: scrollAmount,
+            behavior: 'smooth',
+          });
+        }
+
+        if (data.totalHits > 40) {
+          loaderMore.style.display = 'flex';
+          console.log('loaderMore should be displayed');
+        } else {
+          loaderMore.style.display = 'none';
+          console.log('loaderMore should be hidden');
+
+          Notiflix.Notify.info(
+            "We're sorry, but you've reached the end of search results"
+          );
+        }
+        return;
+      });
+    }
+  }, 500)
+);
+
 function appendImages(arr) {
   if (!Array.isArray(arr) || arr.length === 0) {
     Notiflix.Notify.failure(
       'Sorry, there are no images matching your search query. Please try again.'
     );
+    loaderMore.style.display = 'none';
     return;
   }
 
@@ -59,7 +106,7 @@ function appendImages(arr) {
     const photoCard = `
     <a href="${item.largeImageURL}" class="photo-card-link">
       <div class="photo-card">
-        <img src="${item.webformatURL}" alt="${item.tags}" loading="lazy" />
+        <img src="${item.webformatURL}" class="photo-card-image" alt="${item.tags}" loading="lazy" />
         <div class="info">
           <p class="info-item">
             <b>Likes ${item.likes}</b>
@@ -79,7 +126,26 @@ function appendImages(arr) {
     `;
 
     gallery.insertAdjacentHTML('beforeend', photoCard);
+    loaderMore.style.display = 'none';
   });
+
   const lightbox = new SimpleLightbox('.photo-card-link');
   lightbox.refresh();
 }
+
+// Показуємо або приховуємо кнопку в залежності від положення на сторінці
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 300) {
+    scrollTopButton.style.display = 'block';
+  } else {
+    scrollTopButton.style.display = 'none';
+  }
+});
+
+// Прокручування вверх при кліку на кнопку
+scrollTopButton.addEventListener('click', () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  });
+});
