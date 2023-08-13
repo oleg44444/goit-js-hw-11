@@ -25,7 +25,6 @@ function onFormSearch(evt) {
   newImageService
     .getSearch()
     .then(data => {
-      console.log(data.hits.length);
       if (data.totalHits > 40) {
         loaderMore.style.display = 'flex';
       } else {
@@ -56,7 +55,7 @@ window.addEventListener(
   throttle(() => {
     const documentRect = document.documentElement.getBoundingClientRect();
 
-    if (documentRect.bottom < document.documentElement.clientHeight + 150) {
+    if (documentRect.bottom < document.documentElement.clientHeight + 200) {
       console.log('DONE');
       newImageService.page += 1; // Збільшуємо номер сторінки
 
@@ -87,7 +86,7 @@ window.addEventListener(
             "We're sorry, but you've reached the end of search results"
           );
         }
-        return;
+        loaderMore.style.display = 'none';
       });
     }
   }, 500)
