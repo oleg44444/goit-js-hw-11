@@ -15,6 +15,7 @@ form.addEventListener('submit', onFormSearch);
 
 // В початковому стані кнопка повинна бути прихована.
 loaderMore.style.display = 'none';
+let endOfResults = false;
 
 function onFormSearch(evt) {
   loaderMore.style.display = 'none';
@@ -25,10 +26,12 @@ function onFormSearch(evt) {
   newImageService
     .getSearch()
     .then(data => {
-      if (data.totalHits > 40) {
-        loaderMore.style.display = 'flex';
-      } else {
+      if (data.totalHits < 40) {
         loaderMore.style.display = 'none';
+        endOfResults = true;
+      } else {
+        loaderMore.style.display = 'flex';
+        endOfResults = false;
       }
       Notiflix.Notify.info(`Hooray! We found ${data.totalHits} images.`);
       createGallery(data.hits);
@@ -53,45 +56,55 @@ function createGallery(arr) {
 window.addEventListener(
   'scroll',
   throttle(() => {
-    const documentRect = document.documentElement.getBoundingClientRect();
+    if (!endOfResults) {
+      const documentRect = document.documentElement.getBoundingClientRect();
 
-    if (documentRect.bottom < document.documentElement.clientHeight + 200) {
-      console.log('DONE');
-      newImageService.page += 1; // Збільшуємо номер сторінки
+      if (documentRect.bottom < document.documentElement.clientHeight + 200) {
+        console.log('DONE');
+        newImageService.page += 1; // Збільшуємо номер сторінки
 
-      newImageService.getSearch().then(data => {
-        appendImages(data.hits);
-        const { height: cardHeight } = document
-          .querySelector('.gallery')
-          .firstElementChild.getBoundingClientRect();
-        const galleryHeight = gallery.getBoundingClientRect().height;
+        newImageService.getSearch().then(data => {
+          if (data.hits.length === 0) {
+            loaderMore.style.display = 'none';
+            endOfResults = true;
+            Notiflix.Notify.info(
+              "We're sorry, but you've reached the end of search results"
+            );
+            return;
+          }
 
-        const scrollAmount = cardHeight * 2;
+          appendImages(data.hits);
+          const { height: cardHeight } = document
+            .querySelector('.gallery')
+            .firstElementChild.getBoundingClientRect();
+          const galleryHeight = gallery.getBoundingClientRect().height;
 
-        if (scrollAmount < galleryHeight) {
-          window.scrollBy({
-            top: scrollAmount,
-            behavior: 'smooth',
-          });
-        }
+          const scrollAmount = cardHeight * 2;
 
-        if (data.totalHits > 40) {
-          loaderMore.style.display = 'flex';
-          console.log('loaderMore should be displayed');
-        } else {
-          loaderMore.style.display = 'none';
-          console.log('loaderMore should be hidden');
+          if (scrollAmount < galleryHeight) {
+            window.scrollBy({
+              top: scrollAmount,
+              behavior: 'smooth',
+            });
+          }
 
-          Notiflix.Notify.info(
-            "We're sorry, but you've reached the end of search results"
-          );
-        }
-        loaderMore.style.display = 'none';
-      });
+          if (data.totalHits < 40) {
+            loaderMore.style.display = 'none';
+            endOfResults = true;
+            console.log('loaderMore should be hidden');
+            Notiflix.Notify.info(
+              "We're sorry, but you've reached the end of search results"
+            );
+          } else {
+            loaderMore.style.display = 'flex';
+            console.log('loaderMore should be displayed');
+          }
+        });
+      }
     }
   }, 500)
 );
-
+const lightbox = new SimpleLightbox('.photo-card-link');
 function appendImages(arr) {
   if (!Array.isArray(arr) || arr.length === 0) {
     Notiflix.Notify.failure(
@@ -128,7 +141,6 @@ function appendImages(arr) {
     loaderMore.style.display = 'none';
   });
 
-  const lightbox = new SimpleLightbox('.photo-card-link');
   lightbox.refresh();
 }
 
