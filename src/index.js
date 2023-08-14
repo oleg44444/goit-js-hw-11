@@ -144,6 +144,10 @@ function appendImages(arr) {
   lightbox.refresh();
 }
 
+lightbox.on('close.simplelightbox', () => {
+  lightbox.destroy();
+});
+
 // Показуємо або приховуємо кнопку в залежності від положення на сторінці
 window.addEventListener('scroll', () => {
   if (window.scrollY > 300) {
